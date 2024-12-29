@@ -1,13 +1,14 @@
 # unLe package
-print("aa")
 import matplotlib.pyplot as plt
 import math
 import numpy as np
 from scipy.linalg import eigh
 from numba import jit
+import pandas as pd
 
 ## EXPORTED FUNCTIONS
-__all__ = ["double_centering"]
+__all__ = ["double_centering", "ys_func_of_nans"]
+
 
 """
 double_centering
@@ -60,6 +61,59 @@ def control_double_centering(G_dcnt: np.ndarray, epsilon: float):
         np.abs(np.sum(G_dcnt, axis=1)) > epsilon
     ):
         raise ValueError("the matrix isn't double-centered")
+
+
+# EOF
+
+
+# density-peaks clustering
+
+"""
+csv2np
+Converts the csv file into a numpy one
+Input:
+- path2data: str -> path to where the data are stored
+
+Output:
+- np_array: np.array -> same data converted into a numpy array
+"""
+
+
+def csv2np(path2data: str):
+    data_frame = pd.read_csv(path2data)
+    np_array = data_frame.to_numpy()  # Convert the DataFrame to a NumPy array
+    return np_array
+
+
+# EOF
+
+"""
+ys_func_of_nans
+Useful to visually inspect how much of one data dimension (y) contains nans as function
+of the number of nans along another dimension (x). E.g. how many neurons (rows) are there with <= nans_num along xaxis (i.e. images, columns) 
+Input :
+- data: np.array -> it is the table with data
+- xaxis: int -> it can be 0,1,... depending on the axis you want to use as x. 
+It is the dimension over which you sum the nans in the first place
+-yaxis: int -> it can be 0,1,... depending on the axis you want to use as y. 
+It is the dimension you take into account to see how many usable data there are
+
+Output :
+- nans_num: np.array -> 1:1:dimensions[xaxis] a monotonically increasing function with step=1 
+for further plotting
+- y: np.array -> y.shape = dimensions[yaxis] a monotonically increasing function of elements 
+with <= nans_num. It can be used for further plotting.
+"""
+
+
+def ys_func_of_nans(data: np.array, xaxis: int, yaxis: int):
+    dimensions = data.shape
+    nans_per_dim = np.sum(
+        np.isnan(data), axis=xaxis
+    )  # it is summing over the xaxis to obtain a vec s.t. len(vec) = dimensions[yaxis]
+    nans_num = np.arange(1, dimensions[xaxis] + 1)
+    y = np.array([np.sum(nans_per_dim <= x) for x in nans_num])
+    return nans_num, y
 
 
 # EOF
