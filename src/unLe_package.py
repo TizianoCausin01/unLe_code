@@ -117,3 +117,38 @@ def ys_func_of_nans(data: np.array, xaxis: int, yaxis: int):
 
 
 # EOF
+
+
+"""
+nan_imputation
+Changes the nans in a dataset with the medians or means of the remaining data of the same type.
+E.g. substitutes the nans in the response of a neuron with the average of other neurons' responses 
+to the same image.
+Input:
+- data: np.array -> dataset with nans 
+- type: str -> type of substitution you want to do
+- axis: int -> axis along which you perform the statistical operations
+
+Output:
+- data: np.array -> dataset with nans that have been substituted
+"""
+
+
+def nan_imputation(data: np.array, type: str, axis: int):
+    if type == "mean":
+        substitutes = np.nanmean(data, axis=axis, keepdims=True)
+    elif type == "median":
+        substitutes = np.nanmedian(data, axis=axis, keepdims=True)
+    else:
+        raise ValueError("the type passed is neither 'mean' nor 'median'")
+    # end if
+    nan_positions = np.isnan(data)
+    substitutes_array = np.broadcast_to(
+        substitutes, data.shape
+    )  # creating an array of the same shape of data with the vector of means
+    clean_data = np.copy(data)  # copies the dataset to avoid modifying it
+    clean_data[nan_positions] = substitutes_array[
+        nan_positions
+    ]  # substituting the actural values
+    return clean_data
+    # EOF
