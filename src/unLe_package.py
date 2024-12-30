@@ -120,6 +120,36 @@ def ys_func_of_nans(data: np.array, xaxis: int, yaxis: int):
 
 
 """
+nan_treatment
+It keeps only the neurons with nans <= nans_cutoff and substitutes the remaining nans with the mean or median firing rate
+Input:
+- data: np.array -> dataset with nans
+- nans_cutoff: int -> maximum number of nans you want to keep per element
+- axis: int -> axis along which you perform the statistical operations
+- type: str -> type of substitution you want to do (either 'mean' or 'median')
+
+Output:
+- clean_data: np.array -> dataset with nans that have been removed or substituted
+"""
+
+
+def nan_treatment(data: np.array, nans_cutoff: int, axis: int, type) -> np.array:
+    nans_x_neu = np.sum(np.isnan(data), axis=axis)  # sum over colums
+    cleaner_data = data[
+        nans_x_neu <= nans_cutoff, :
+    ]  # keeps only the neurons with nans <= nans_cutoff
+    print(data.shape)  # old shape
+    print(cleaner_data.shape)  # inspects the new shape of the array
+    clean_data = unLe_package.nan_imputation(
+        cleaner_data, type, 1
+    )  # substitutes the remaining nans with the median firing rate
+    np.any(np.isnan(clean_data))  # checks that no nan is left
+    return clean_data
+
+
+# EOF
+
+"""
 nan_imputation
 Changes the nans in a dataset with the medians or means of the remaining data of the same type.
 E.g. substitutes the nans in the response of a neuron with the average of other neurons' responses 
