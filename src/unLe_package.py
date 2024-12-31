@@ -7,8 +7,17 @@ from numba import jit
 import pandas as pd
 
 ## EXPORTED FUNCTIONS
-__all__ = ["double_centering", "ys_func_of_nans"]
+__all__ = [
+    "double_centering",
+    "ys_func_of_nans",
+    "nan_treatment",
+    "nan_imputation",
+    "get_cutoff",
+]
 
+# ===================================
+# GENERAL USEFUL FUNCTIONS
+# ===================================
 
 """
 double_centering
@@ -66,7 +75,11 @@ def control_double_centering(G_dcnt: np.ndarray, epsilon: float):
 # EOF
 
 
-# density-peaks clustering
+# ===================================
+# ===================================
+# CSV FILE PART - (DENSITY-PEAKS CLUSTERING & PCA)
+# ===================================
+# ===================================
 
 """
 csv2np
@@ -86,6 +99,11 @@ def csv2np(path2data: str):
 
 
 # EOF
+
+
+# ===================================
+# NANs HANDLING
+# ===================================
 
 """
 ys_func_of_nans
@@ -121,7 +139,8 @@ def ys_func_of_nans(data: np.array, xaxis: int, yaxis: int):
 
 """
 nan_treatment
-It keeps only the neurons with nans <= nans_cutoff and substitutes the remaining nans with the mean or median firing rate
+It keeps only the neurons with nans <= nans_cutoff and substitutes the
+remaining nans with the mean or median firing rate.
 Input:
 - data: np.array -> dataset with nans
 - nans_cutoff: int -> maximum number of nans you want to keep per element
@@ -138,9 +157,7 @@ def nan_treatment(data: np.array, nans_cutoff: int, axis: int, type) -> np.array
     cleaner_data = data[
         nans_x_neu <= nans_cutoff, :
     ]  # keeps only the neurons with nans <= nans_cutoff
-    print(data.shape)  # old shape
-    print(cleaner_data.shape)  # inspects the new shape of the array
-    clean_data = unLe_package.nan_imputation(
+    clean_data = nan_imputation(
         cleaner_data, type, 1
     )  # substitutes the remaining nans with the median firing rate
     np.any(np.isnan(clean_data))  # checks that no nan is left
@@ -182,3 +199,54 @@ def nan_imputation(data: np.array, type: str, axis: int):
     ]  # substituting the actural values
     return clean_data
     # EOF
+
+
+# ===================================
+# DENSITY ESTIMATION
+# ===================================
+
+"""
+get_cutoff
+Inspired by "As a rule of thumb, one can choose dc so that the 
+average number of neighbors is around 1 to 2% of the total number 
+of points in the data set." (Rodriguez & Laio 2014, p. 3 (1494))
+It aims at finding the right cutoff distance for further estimation
+such that on average each point will have 15% neighbours within the
+hypersphere of radius = distance_cutoff. It uses bisection search to 
+find the correct cutoff distance.
+Input:
+- distance_matrix: np.array -> an NxN matrix with the 
+pairwise distances of the points
+- percent: float -> the percentage of points you want in 
+your neighbourhood (already divided by 100)
+- epsilon: float -> the degree of accuracy you want for your guess
+
+Output:
+- distance_cutoff: float -> the obtained cutoff such that we'll 
+have on average the required percentage of datapoints within that range
+"""
+
+
+def get_cutoff(distance_matrix: np.array, percent: float, epsilon: float) -> float:
+    N = len(distance_matrix)  # N = num of datapts
+    target = (
+        round(N * percent) + 1
+    )  # average number of neighbors to select, +1 because on diagonal of the distance matrix I have the point compared to itself
+    high = np.max(distance_matrix)  # sets the highest distance
+    low = 0  # sets the lowest possible distance
+    distance_cutoff = (high + low) / 2  # sets the initial guess
+    res = (
+        np.sum(distance_matrix <= distance_cutoff) / N
+    )  # how many points are within the distance cutoff on average
+    num_trials = 0  # counter
+    while abs(res - target) > epsilon:
+        print(num_trials, distance_cutoff)
+        num_trials += 1  # counter update
+        if res > target:  # if we overshoot, the new ceiling will be our previous guess
+            high = distance_cutoff
+        else:
+            low = distance_cutoff  # if we undershoot, the new floor will be our previous guess
+        distance_cutoff = (high + low) / 2  # updates the guess
+        res = np.sum(distance_matrix <= distance_cutoff) / N
+    print(f"cutoff = {round(distance_cutoff, 3)}, found in {num_trials} iterations")
+    return distance_cutoff
