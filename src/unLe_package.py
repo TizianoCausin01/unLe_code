@@ -248,5 +248,39 @@ def get_cutoff(distance_matrix: np.array, percent: float, epsilon: float) -> flo
             low = distance_cutoff  # if we undershoot, the new floor will be our previous guess
         distance_cutoff = (high + low) / 2  # updates the guess
         res = np.sum(distance_matrix <= distance_cutoff) / N
+    # end while
     print(f"cutoff = {round(distance_cutoff, 3)}, found in {num_trials} iterations")
     return distance_cutoff
+
+
+# EOF
+
+"""
+compute_prominence
+Prominence is defined as the distance from the closest point with higher density.
+Input:
+- sorted_distance_matrix: np.array -> NxN distance matrix sorted in descending order of density
+
+Output:
+- prominence: np.array -> Nx1 vector of prominences sorted in descending order of density
+"""
+
+
+def compute_prominence(sorted_distance_matrix: np.array) -> np.array:
+    N = len(sorted_distance_matrix)
+    prominence = np.zeros(N)  # initialization prominence matrix
+    for i in range(N):
+        if i == 0:
+            prominence[i] = np.max(
+                sorted_distance_matrix
+            )  # by convention the highest density point is assigned to the highest possible distance
+        else:
+            prominence[i] = np.min(
+                sorted_distance_matrix[0:i, i]
+            )  # takes the minimum distance from the point i (column) among the points with higher density (0:i-1 rows)
+        # end if
+    # end for
+    return prominence
+
+
+# EOF
