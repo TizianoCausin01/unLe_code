@@ -5,11 +5,16 @@ import numpy as np
 from scipy.linalg import eigh
 from numba import jit
 import pandas as pd
+from scipy.spatial.distance import pdist, squareform
+from numba import jit
 
 ## EXPORTED FUNCTIONS
 __all__ = [
     "compute_cov_mat",
-    "cnt_mat" "double_centering",
+    "cnt_mat",
+    "double_centering",
+    "war_floyd_init",
+    "war_floyd",
     "ys_func_of_nans",
     "nan_treatment",
     "nan_imputation",
@@ -87,15 +92,10 @@ OUTPUT :
 
 
 def double_centering(G: np.ndarray, epsilon: float) -> np.ndarray:
-
-    G_col_avg = np.mean(
-        G, axis=0, keepdims=True
-    )  # averages along the columns and makes it a row vector to do the columnwise subtracttion
-    G_row_avg = np.mean(
-        G, axis=1, keepdims=True
-    )  # averages along the rows and makes it a row vector to do the rowwise subtracttion
-    G_all_avg = np.mean(G)
-    G_dcnt = G - G_row_avg - G_col_avg + G_all_avg
+    N = len(G)
+    G_dcnt = (
+        -0.5 * (np.eye(N) - 1 / N * np.ones(N)).T @ G @ (np.eye(N) - 1 / N * np.ones(N))
+    )
     # to check if it's really centered
     control_double_centering(G_dcnt, epsilon)
     return G_dcnt
@@ -128,11 +128,11 @@ def control_double_centering(G_dcnt: np.ndarray, epsilon: float):
 
 """
 variance_explained
-Computes the proportion of variance explained by the first d dimensions from PCA, s.t. A.T @ x_i = y_i
-A is the projection matrix (dxD), x_i (€ R^D) is the initial data point, y_i (€ R^d) is 
-the dimensionality reduced datapoint.
+Computes the proportion of variance explained by eigenvectors associated to the largest d eigenvalues, s.t. in PCA 
+A.T @ x_i = y_i A is the projection matrix (dxD), x_i (€ R^D) is the initial data point, 
+y_i (€ R^d) is the dimensionality reduced datapoint.
 Input:
-- sorted_eval: np.array -> the sorted evals in decreasing order
+- eval: np.array -> the sorted evals in increasing order
 - d: int -> the reduced dimensionality
 
 Output: 
@@ -140,13 +140,77 @@ Output:
 """
 
 
-def variance_explained(sorted_eval: np.array, d: int) -> float:
-    chi_d = np.sum(sorted_eval[0:d]) / np.sum(sorted_eval)
+def variance_explained(eval: np.array, d: int) -> float:
+    D = len(eval)
+    chi_d = np.sum(eval[-d:]) / np.sum(eval)
     return chi_d
 
 
 # EOF
 
+"""
+war_floyd_init
+Initializes the Gram matrix for further warshall-floyd. It first computes the distance matrix.
+Then, it substitues with inifinite all the entries that are above a distance_cutoff.
+pdist assumes my data matrix is (NxD), datapoints along the rows
+Input:
+- data: np.array -> NxD data matrix
+- distance_cutoff: float -> distance above which we consider our data not connected anymore
+
+Output:
+- G: np.array -> NxN Gram matrix
+"""
+
+
+def war_floyd_init(data: np.array, distance_cutoff: float) -> np.array:
+    dist = pdist(data, metric="euclidean")
+    dist_mat = squareform(dist)
+    G = np.copy(dist_mat)
+    G[G >= distance_cutoff] = float("inf")
+    return G
+
+
+# EOF
+
+"""
+war_floyd
+Warshall-Floyd algorithm, given an already initialized Gram matrix. It is a way to establish the 
+distances between points by following the embedding manifold profile. If a distance is smaller by 
+passing through another point, you substitute it. At the end, the Gram matrix has in its entries 
+the shortest distances between the points. war-floyd_init is not embedded in this function because 
+otherwise I wouldn't be able to use jit.
+Input:
+- G: np.array -> the Gram matrix already initialized
+
+Output:
+- G: np.array -> the updated Gram matrix 
+"""
+
+
+@jit(fastmath=True, nopython=True)
+def war_floyd(G: np.array) -> np.array:
+    N = len(G)
+    G_new = np.copy(G)
+    # algorithm implementation
+    for k in range(N):
+        for i in range(N):
+            for j in range(N):
+                if G_new[i, j] > (
+                    G_new[i, k] + G_new[k, j]
+                ):  # if the distance between i and j is shorted when passing through k
+                    G_new[i, j] = G_new[i, k] + G_new[k, j]  # update the entry
+                # end if
+            # end for j
+    # end for i
+    # end for k
+    if np.any(np.isinf(G)):
+        raise ValueError(
+            "The distance cutoff wasn't high enough to connect all the points of the graph"
+        )
+    return G_new
+
+
+# EOF
 
 # ===================================
 # ===================================
