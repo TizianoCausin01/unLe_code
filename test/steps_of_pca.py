@@ -30,23 +30,15 @@ cov_mat = unLe_package.compute_cov_mat(clean_dataT, 0)
 # %% extracts eigenvalues and eigenvectors
 eval, evec = eigh(cov_mat)
 
-# %% see the variance explained
-sorted_idx = np.argsort(eval)[::-1]
-sorted_eval = eval[sorted_idx]
-sorted_evec = evec[:, sorted_idx]
-
-
 # %% plot top components
-plt.scatter(np.arange(D), sorted_eval)
+plt.scatter(np.arange(D), eval)
 plt.show()
 # %% look for the rank
 rank_cov = np.linalg.matrix_rank(cov_mat)
 print(rank_cov)
 
 # %%
-var_explained = np.sum(sorted_eval[0:10]) / np.sum(sorted_eval)
-# %%
+var_explained = unLe_package.variance_explained(eval, 10)
 print(var_explained)
-# %%
-print(sorted_evec[:, 0])
+
 # %%
