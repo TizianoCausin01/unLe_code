@@ -8,16 +8,68 @@ import pandas as pd
 
 ## EXPORTED FUNCTIONS
 __all__ = [
-    "double_centering",
+    "compute_cov_mat",
+    "cnt_mat" "double_centering",
     "ys_func_of_nans",
     "nan_treatment",
     "nan_imputation",
     "get_cutoff",
+    "compute_prominence",
 ]
 
 # ===================================
 # GENERAL USEFUL FUNCTIONS
 # ===================================
+"""
+compute_cov_mat
+Computes the covariance matrix of "data", after having centered it. Depending on whether the datapoints are the rows or the
+columns it is (1/N) * data.T @ data (for rows, axis=0) or (1/N) * data @ data.T (for cols, axis=1)
+Input:
+- data: np.array -> NxD or DxN data matrix
+- axis: int -> 0 (NxD) or 1 (DxN), indicates where the datapoints are
+
+Output:
+- cov_mat: np.array -> DxD covariance matrix
+
+"""
+
+
+def compute_cov_mat(data: np.array, axis: int) -> np.array:
+    data_cnt = center_mat(
+        data, axis
+    )  # centers the data matrix (i.e. subtracts the average across the dimension in which the datapoints are)
+    if axis == 0:
+        N, _ = data_cnt.shape
+        cov_mat = (1 / N) * data_cnt.T @ data_cnt
+    elif axis == 1:
+        _, N = data_cnt.shape
+        cov_mat = (1 / N) * data_cnt @ data_cnt.T
+    else:  # if the axis is neither 0 nor 1
+        raise ValueError("The axis provided is neither rows nor columns")
+    # end if
+    return cov_mat
+
+
+# EOF
+
+"""
+center_mat
+Centers the data matrix, i.e. subtracts to each element the average across datapoints of 
+each feature. 
+Input:
+- data: np.array -> the data matrix 
+- axis: int -> the axis with datapoints along which is performed the average
+
+Output:
+- data_cnt: np.array -> the center data matrix
+"""
+
+
+def center_mat(data: np.array, axis: int) -> np.array:
+    mean_data = np.mean(data, axis, keepdims=True)
+    data_cnt = data - mean_data
+    return data_cnt
+
 
 """
 double_centering
@@ -70,6 +122,27 @@ def control_double_centering(G_dcnt: np.ndarray, epsilon: float):
         np.abs(np.sum(G_dcnt, axis=1)) > epsilon
     ):
         raise ValueError("the matrix isn't double-centered")
+
+
+# EOF
+
+"""
+variance_explained
+Computes the proportion of variance explained by the first d dimensions from PCA, s.t. A.T @ x_i = y_i
+A is the projection matrix (dxD), x_i (€ R^D) is the initial data point, y_i (€ R^d) is 
+the dimensionality reduced datapoint.
+Input:
+- sorted_eval: np.array -> the sorted evals in decreasing order
+- d: int -> the reduced dimensionality
+
+Output: 
+- chi_d: float -> the proportion of variance explained by the top d evals
+"""
+
+
+def variance_explained(sorted_eval: np.array, d: int) -> float:
+    chi_d = np.sum(sorted_eval[0:d]) / np.sum(sorted_eval)
+    return chi_d
 
 
 # EOF
