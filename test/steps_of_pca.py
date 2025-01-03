@@ -38,7 +38,8 @@ rank_cov = np.linalg.matrix_rank(cov_mat)
 print(rank_cov)
 
 # %%
-var_explained = unLe_package.variance_explained(eval, 10)
+var_explained = unLe_package.variance_explained(eval, 2)
 print(var_explained)
-
+# %%
+unLe_package.plot_PC1_PC2(clean_dataT, evec)
 # %%

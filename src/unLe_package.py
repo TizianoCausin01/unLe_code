@@ -338,6 +338,27 @@ def nan_imputation(data: np.array, type: str, axis: int):
     # EOF
 
 
+"""
+plot_PC1_PC2
+Plots the first two components from PCA.
+Input:
+- data: np.array -> (NxD) dataset
+- evec: np.array -> (DxD) eigenvector matrix, each column is an eigenvector, sorted in increasing order according to the associated eigenvalue
+
+Output:
+none
+"""
+
+
+def plot_PC1_PC2(data: np.array, evec: np.array):
+    PC1 = data.dot(evec[:, -1])
+    PC2 = data.dot(evec[:, -2])
+    plt.scatter(PC1, PC2)
+    plt.xlabel("PC1")
+    plt.ylabel("PC2")
+    plt.show()
+
+
 # ===================================
 # DENSITY ESTIMATION
 # ===================================
