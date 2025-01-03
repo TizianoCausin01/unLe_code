@@ -43,3 +43,4 @@ print(var_explained)
 # %%
 unLe_package.plot_PC1_PC2(clean_dataT, evec)
 # %%
+unLe_package.pca_wrapper(clean_dataT)  # wraps up all the steps above in a function

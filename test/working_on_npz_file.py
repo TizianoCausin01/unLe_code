@@ -26,20 +26,6 @@ arr = np.copy(data["butternut_squash"])
 n_neu, n_types, n_trials, n_tbins = arr.shape
 
 # %%
-nan_mask = np.all(
-    arr == 0, axis=3
-)  # finds the elements that along the 3rd axis are all 0s (because not recorded)
-nan_arr = np.copy(arr)
-nan_arr[nan_mask, :] = np.nan  # marks all the responses with all 0s with all nans
-mean_arr = np.nanmean(
-    nan_arr, axis=2
-)  # computes the average (excluding the nans) across the trials dimension (so it becomes a 3D array)
-flattened_arr = mean_arr.reshape(
-    -1, arr.shape[3]
-)  # reshapes the 3D array into a 2D, neurons and types of images (grouped by neurons) on the rows and time bins in the columns
-clean_arr = flattened_arr[
-    ~np.all(np.isnan(flattened_arr), axis=1), :
-]  # it is preserving only the rows without nans
-# %%
-unLe_package.tensor_reshaping(data["Madagascar_cat"])
+data_clean = unLe_package.tensor_reshaping(data["butternut_squash"])
+dat = unLe_package.pca_wrapper(data_clean)
 # %%
