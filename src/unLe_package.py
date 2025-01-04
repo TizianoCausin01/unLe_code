@@ -32,14 +32,14 @@ then extracts the eigenvalues and the associated eigenvectors and finally plots
 the spectrum and the data in two components (PC1-PC2).
 INPUT:
 - data: np.array -> (NxD) Data matrix, requires points in the rows and features in the columns
-
+- title: str -> for the title of the plots
 OUTPUT
 - evals: np.array, evec: np.array -> the eigenvalues (Dx1) and associated eigenvectors 
 (DxD, evecs are column vectors) respectively, sorted in increasing order of eigenvalues
 """
 
 
-def pca_wrapper(data: np.array):
+def pca_wrapper(data: np.array, title: str, path2save: str):
     N, D = data.shape
     # compute covariance matrix
     cov_mat = compute_cov_mat(data, 0)
@@ -47,7 +47,8 @@ def pca_wrapper(data: np.array):
     evals, evec = eigh(cov_mat)
     # plot top components
     plt.scatter(np.arange(D), evals)
-    plt.title("eigenvalues spectrum")
+    plt.title(f"{title} eigenvalues spectrum")
+    plt.savefig(f"{path2save}/{title}_spectrum.png")
     plt.show()
     # look for the rank
     rank_cov = np.linalg.matrix_rank(cov_mat)
@@ -56,7 +57,7 @@ def pca_wrapper(data: np.array):
     var_explained = variance_explained(evals, 2)
     print(f"variance explained by the first 2 components: {var_explained}")
     # plots the top components
-    plot_PC1_PC2(data, evec, var_explained)
+    plot_PC1_PC2(data, evec, title, var_explained, path2save)
     return evals, evec
 
 
@@ -382,18 +383,28 @@ Plots the first two components from PCA.
 Input:
 - data: np.array -> (NxD) dataset
 - evec: np.array -> (DxD) eigenvector matrix, each column is an eigenvector, sorted in increasing order according to the associated eigenvalue
+- title: str -> the title of the plot
+- explained_variance: float -> % of explained variance by the first two components
+- path2save: str -> optional argument to save the plot
 
 Output:
 none
 """
 
 
-def plot_PC1_PC2(data: np.array, evec: np.array, explained_variance: float):
+def plot_PC1_PC2(
+    data: np.array,
+    evec: np.array,
+    title: str,
+    explained_variance: float,
+    path2save=None,
+):
     PC1 = data.dot(evec[:, -1])
     PC2 = data.dot(evec[:, -2])
     plt.scatter(PC1, PC2)
     plt.xlabel("PC1")
     plt.ylabel("PC2")
+    plt.title(f"{title} PC1-PC2")
     box_str = f"explained variance: {round(explained_variance,2)}"
     plt.text(
         0.95,
@@ -405,7 +416,8 @@ def plot_PC1_PC2(data: np.array, evec: np.array, explained_variance: float):
         ha="right",
         va="top",
     )
-
+    if path2save is not None:
+        plt.savefig(f"{path2save}/{title}_PC1-PC2.png")
     plt.show()
 
 
