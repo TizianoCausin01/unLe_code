@@ -25,9 +25,11 @@ print(data["butternut_squash"][0, 1, :, :])
 arr = np.copy(data["butternut_squash"])
 n_neu, n_types, n_trials, n_tbins = arr.shape
 
-# %%
 
-path2save = "/Users/tizianocausin/Desktop/backUp20240609/sissa/unsupervised_learning/assignment_figures/pca_categories_plots"
+# %%
+path2save = "/Users/tizianocausin/Desktop/backUp20240609/sissa/unsupervised_learning/assignment_figures/with_zeros_pca_categories_plots"
 for categ in data.files:
     data_clean = unLe_package.tensor_reshaping(data[categ])
     res = unLe_package.pca_wrapper(data_clean, categ, path2save)
+
+# %%

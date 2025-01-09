@@ -527,14 +527,14 @@ OUTPUT:
 
 
 def tensor_reshaping(data: np.array) -> np.array:
-    nan_mask = np.all(
-        data == 0, axis=3
-    )  # finds the elements that along the 3rd axis are all 0s (because not recorded)
-    nan_arr = np.copy(data)  # array with nans
-    nan_arr[nan_mask, :] = np.nan  # marks all the responses with all 0s with all nans
-    mean_arr = np.nanmean(
-        nan_arr, axis=2
-    )  # computes the average (excluding the nans) across the trials dimension (so it becomes a 3D array)
+    # nan_mask = np.all(
+    #     data == 0, axis=3
+    # )  # finds the elements that along the 3rd axis are all 0s (because not recorded)
+    # nan_arr = np.copy(data)  # array with nans
+    # nan_arr[nan_mask, :] = np.nan  # marks all the responses with all 0s with all nans
+    mean_arr = np.mean(
+        data, axis=2
+    )  # computes the average across the trials dimension (so it becomes a 3D array)
     flattened_arr = mean_arr.reshape(
         -1, data.shape[3]
     )  # reshapes the 3D array into a 2D, neurons and types of images (grouped by neurons) on the rows and time bins in the columns
