@@ -379,7 +379,9 @@ def nan_imputation(data: np.array, type: str, axis: int):
 
 """
 plot_PC1_PC2
-Plots the first two components from PCA.
+Plots the first two components from PCA. 
+The low-dimensional data representations are given by the dot product of the datapoint with the PC 
+(i.e. the eigenvector corresponding to the top ith eigenvalue).
 Input:
 - data: np.array -> (NxD) dataset
 - evec: np.array -> (DxD) eigenvector matrix, each column is an eigenvector, sorted in increasing order according to the associated eigenvalue
@@ -418,6 +420,54 @@ def plot_PC1_PC2(
     )
     if path2save is not None:
         plt.savefig(f"{path2save}/{title}_PC1-PC2.png")
+    plt.show()
+
+
+"""
+plot_isomap_PC1_PC2
+Plots the first two components from isomap. 
+The ith component of low-dimensional data representations are given sqrt(eval[-i])*evec[-i] as in p. 4 of Tenenbaum 2000.
+(the -i idx is because our eigenvalues and eigenvectors are sorted in increasing order)
+Input:
+- data: np.array -> (NxD) dataset
+- evec: np.array -> (DxD) eigenvector matrix, each column is an eigenvector, sorted in increasing order according to the associated eigenvalue
+- eval
+- title: str -> the title of the plot
+- explained_variance: float -> % of explained variance by the first two components
+- path2save: str -> optional argument to save the plot
+
+Output:
+none
+"""
+
+
+def plot_isomap_PC1_PC2(
+    data: np.array,
+    evec: np.array,
+    eval: np.array,
+    title: str,
+    explained_variance: float,
+    path2save=None,
+):
+    PC1 = np.sqrt(eval[-1]) * evec[:, -1]
+    PC2 = np.sqrt(eval[-2]) * evec[:, -2]
+    plt.scatter(PC1, PC2)
+    plt.xlabel("PC1")
+    plt.ylabel("PC2")
+    plt.title(f"{title} PC1-PC2")
+    box_str = f"explained variance: {round(explained_variance,2)}"
+    plt.text(
+        0.95,
+        0.95,
+        box_str,
+        transform=plt.gca().transAxes,
+        fontsize=9,
+        bbox=dict(facecolor="red", alpha=0.5),
+        ha="right",
+        va="top",
+    )
+    if path2save is not None:
+        plt.savefig(f"{path2save}/{title}_isomap_PC1-PC2.png")
     plt.show()
 
 

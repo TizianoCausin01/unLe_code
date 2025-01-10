@@ -53,4 +53,56 @@ plt.show()
 print(np.linalg.matrix_rank(G_dcnt))
 
 # %%
-unLe_package.variance_explained(eval_dG, 600)
+expl_var = unLe_package.variance_explained(eval_dG, 2)
+
+
+# %%
+def plot_isomap_PC1_PC2(
+    data: np.array,
+    evec: np.array,
+    eval: np.array,
+    title: str,
+    explained_variance: float,
+    path2save=None,
+):
+    PC1 = np.sqrt(eval[-1]) * evec[:, -1]
+    PC2 = np.sqrt(eval[-2]) * evec[:, -2]
+    plt.scatter(PC1, PC2)
+    plt.xlabel("PC1")
+    plt.ylabel("PC2")
+    plt.title(f"{title} PC1-PC2")
+    box_str = f"explained variance: {round(explained_variance,2)}"
+    plt.text(
+        0.95,
+        0.95,
+        box_str,
+        transform=plt.gca().transAxes,
+        fontsize=9,
+        bbox=dict(facecolor="red", alpha=0.5),
+        ha="right",
+        va="top",
+    )
+    if path2save is not None:
+        plt.savefig(f"{path2save}/{title}_isomap_PC1-PC2.png")
+    plt.show()
+
+
+# %%
+unLe_package.plot_isomap_PC1_PC2(clean_dataT, evec, eval_dG, "all", expl_var)
+
+
+# %%
+def isomap_wrapper(data: np.array, dc, title: str, path2save: str):
+    G_init = unLe_package.war_floyd_init(clean_dataT, dc)
+    G = unLe_package.war_floyd(G_init)
+    G_dcnt = unLe_package.double_centering(G, 1e-5)
+    eval_dG, evec = eigh(G_dcnt)
+    plt.scatter(np.arange(N), eval_dG)
+    plt.title("isomap eigenvalues spectrum")
+    plt.savefig(f"{path2save}/{title}_isomap_spectrum.png")
+    plt.show()
+    # computes the explained variance
+    var_explained = unLe_package.variance_explained(eval_dG, 2)
+
+
+# %%
