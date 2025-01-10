@@ -33,13 +33,14 @@ the spectrum and the data in two components (PC1-PC2).
 INPUT:
 - data: np.array -> (NxD) Data matrix, requires points in the rows and features in the columns
 - title: str -> for the title of the plots
+- path2save: str, default=None -> if it's an argument, it should be the folder where you will store the images of the plots
 OUTPUT
 - evals: np.array, evec: np.array -> the eigenvalues (Dx1) and associated eigenvectors 
 (DxD, evecs are column vectors) respectively, sorted in increasing order of eigenvalues
 """
 
 
-def pca_wrapper(data: np.array, title: str, path2save: str):
+def pca_wrapper(data: np.array, title: str, path2save=None):
     N, D = data.shape
     # compute covariance matrix
     cov_mat = compute_cov_mat(data, 0)
@@ -47,8 +48,9 @@ def pca_wrapper(data: np.array, title: str, path2save: str):
     evals, evec = eigh(cov_mat)
     # plot top components
     plt.scatter(np.arange(D), evals)
-    plt.title(f"{title} eigenvalues spectrum")
-    plt.savefig(f"{path2save}/{title}_spectrum.png")
+    if path2save is not None:
+        plt.title(f"{title} eigenvalues spectrum")
+        plt.savefig(f"{path2save}/{title}_spectrum.png")
     plt.show()
     # look for the rank
     rank_cov = np.linalg.matrix_rank(cov_mat)
@@ -62,6 +64,78 @@ def pca_wrapper(data: np.array, title: str, path2save: str):
 
 
 # EOF
+
+"""
+pca_wrapper
+Function to wrap up all the PCA process when you have to compare two categories in the shared
+space of their joint PCs. First computes the covariance matrix, then extracts the eigenvalues 
+and the associated eigenvectors and finally plots the spectrum and the data in two components (PC1-PC2).
+INPUT:
+- data1: np.array -> (NxD) Data matrix of the first category, requires points in the rows and features in the columns
+- data2: np.array -> (NxD) Data matrix of the second category, requires points in the rows and features in the columns
+- title: str -> for the title of the plots
+OUTPUT
+- evals: np.array, evec: np.array -> the eigenvalues (Dx1) and associated eigenvectors 
+(DxD, evecs are column vectors) respectively, sorted in increasing order of eigenvalues
+"""
+
+
+def pca_wrapper_comb(data1: np.array, data2: np.array, title: str, path2save=None):
+    data_tot = np.vstack((data1, data2))
+    N, D = data_tot.shape
+    # compute covariance matrix
+    cov_mat = compute_cov_mat(data_tot, 0)
+    # extracts eigenvalues and eigenvectors
+    evals, evec = eigh(cov_mat)
+    # plot top components
+    plt.scatter(np.arange(D), evals)
+    if path2save is not None:
+        plt.title(f"{title} eigenvalues spectrum")
+        plt.savefig(f"{path2save}/{title}_spectrum.png")
+    plt.show()
+    # look for the rank
+    rank_cov = np.linalg.matrix_rank(cov_mat)
+    print(rank_cov)
+    # computes the explained variance
+    var_explained = variance_explained(evals, 2)
+    print(f"variance explained by the first 2 components: {var_explained}")
+    # plots the top components
+    plot_PC1_PC2_comb(data1, data2, evec, title, var_explained, path2save)
+    return evals, evec
+
+
+"""
+isomap_wrapper
+Function to wrap up all the isomap process. First computes the Gram matrix with Warshall-Floyd, 
+then extracts the eigenvalues and the associated eigenvectors and finally plots
+the spectrum and the data in two components (PC1-PC2).
+INPUT:
+- data: np.array -> (NxD) Data matrix, requires points in the rows and features in the columns
+- dc -> distance cutoff in the warshall-floyd initialization
+- title: str -> for the title of the plots
+OUTPUT
+- evals: np.array, evec: np.array -> the eigenvalues (Dx1) and associated eigenvectors 
+(DxD, evecs are column vectors) respectively, sorted in increasing order of eigenvalues
+"""
+
+
+def isomap_wrapper(data: np.array, dc, title: str, path2save=None):
+    G_init = war_floyd_init(
+        data, dc
+    )  # initializes the distance matrix for the warshall-floyd algorithm
+    G = war_floyd(G_init)
+    G_dcnt = double_centering(G, 1e-5)
+    evals, evec = eigh(G_dcnt)
+    N = len(G)
+    plt.scatter(np.arange(N), evals)
+    if path2save is not None:
+        plt.title("isomap eigenvalues spectrum")
+        plt.savefig(f"{path2save}/{title}_isomap_spectrum.png")
+    plt.show()
+    # computes the explained variance
+    var_explained = variance_explained(evals, 2)
+    plot_isomap_PC1_PC2(data, evec, evals, title, var_explained, path2save)
+    return evals
 
 
 """
@@ -471,6 +545,59 @@ def plot_isomap_PC1_PC2(
     plt.show()
 
 
+"""
+plot_PC1_PC2_comb
+Plots the first two components from PCA coming from two categories two see how 
+much they are overlapping/discriminable.
+The low-dimensional data representations are given by the dot product of the datapoint with the PCs 
+(i.e. the eigenvector corresponding to the top ith eigenvalue).
+
+Input:
+- data1: np.array -> (NxD) dataset of the first category
+- data2: np.array -> (NxD) dataset of the second category
+- evec: np.array -> (DxD) eigenvector matrix, each column is an eigenvector, sorted in increasing order according to the associated eigenvalue
+- title: str -> the title of the plot, should be somthing like f"{name1} & {name2}"
+- explained_variance: float -> % of explained variance by the first two components
+- path2save: str -> optional argument to save the plot
+
+Output:
+none
+"""
+
+
+def plot_PC1_PC2_comb(
+    data1: np.array,
+    data2: np.array,
+    evec: np.array,
+    title: str,
+    explained_variance: float,
+    path2save=None,
+):
+    PC1_1 = data1.dot(evec[:, -1])
+    PC1_2 = data2.dot(evec[:, -1])
+    PC2_1 = data1.dot(evec[:, -2])
+    PC2_2 = data2.dot(evec[:, -2])
+    plt.scatter(PC1_1, PC2_1)
+    plt.scatter(PC1_2, PC2_2)  # plots the second category in a hold on way
+    plt.xlabel("PC1")
+    plt.ylabel("PC2")
+    plt.title(f"{title} PC1-PC2")
+    box_str = f"explained variance: {round(explained_variance,2)}"
+    plt.text(
+        0.95,
+        0.95,
+        box_str,
+        transform=plt.gca().transAxes,
+        fontsize=9,
+        bbox=dict(facecolor="red", alpha=0.5),
+        ha="right",
+        va="top",
+    )
+    if path2save is not None:
+        plt.savefig(f"{path2save}/{title}_PC1-PC2.png")
+    plt.show()
+
+
 # ===================================
 # DENSITY ESTIMATION
 # ===================================
@@ -481,7 +608,7 @@ Inspired by "As a rule of thumb, one can choose dc so that the
 average number of neighbors is around 1 to 2% of the total number 
 of points in the data set." (Rodriguez & Laio 2014, p. 3 (1494))
 It aims at finding the right cutoff distance for further estimation
-such that on average each point will have 15% neighbours within the
+such that on average each point will have % neighbours within the
 hypersphere of radius = distance_cutoff. It uses bisection search to 
 find the correct cutoff distance.
 Input:
